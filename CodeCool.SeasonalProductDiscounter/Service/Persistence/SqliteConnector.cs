@@ -51,6 +51,21 @@ public abstract class SqLiteConnector
     protected bool ExecuteNonQuery(IEnumerable<string> queries)
     {
         //Implement it similarly to the above function
+        foreach (var query in queries)
+        {
+            try
+            {
+                using var connection = GetPhysicalDbConnection();
+                using var command = GetCommand(query, connection);
+                Logger.LogInfo($"{GetType().Name} executing query: {query}");
+                command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e.Message);
+                return false;
+            }
+        }
         return true;
     }
 }

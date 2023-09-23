@@ -7,4 +7,5 @@ public interface ITransactionRepository
 {
     bool Add(Transaction transaction);
     IEnumerable<Transaction> GetAll();
+    void ClearTransactionsDatabase();
 }

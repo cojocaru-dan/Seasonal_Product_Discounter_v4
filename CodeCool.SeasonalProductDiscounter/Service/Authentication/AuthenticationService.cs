@@ -15,6 +15,9 @@ public class AuthenticationService : IAuthenticationService
 
     public bool Authenticate(User user)
     {
-        return false;
+        User findUser = _userRepository.Get(user.UserName);
+        if (findUser.UserName == "not exist") return false;
+        bool matchName = user.UserName == findUser.UserName;
+        return matchName;
     }
 }

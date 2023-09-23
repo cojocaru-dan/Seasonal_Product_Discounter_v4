@@ -20,12 +20,20 @@ public class TransactionRepository : SqLiteConnector, ITransactionRepository
     public bool Add(Transaction transaction)
     {
         //
-        return false;
+        string query = $"INSERT INTO transactions VALUES( {transaction.Id}, '{transaction.Date.ToString()}', {transaction.User.Id}, {transaction.Product.Id}, {transaction.PricePaid} )";
+        bool queryIsExecuted = ExecuteNonQuery(query);
+        if (!queryIsExecuted)
+        {
+            Logger.LogError($"There is a problem with adding transaction number {transaction.Id} to database!");
+            return false;
+        }
+        Logger.LogInfo($"The transaction has been added successfully!");
+        return true;
     }
 
     public IEnumerable<Transaction> GetAll()
     {
-        var query = "";
+        var query = "SELECT * FROM products INNER JOIN users ON products.user_id = users.id INNER JOIN transactions ON users.id = transactions.user_id";
 
         try
         {
@@ -33,7 +41,6 @@ public class TransactionRepository : SqLiteConnector, ITransactionRepository
             using var command = GetCommand(query, connection);
             using var reader = command.ExecuteReader();
             Logger.LogInfo($"{GetType().Name} executing query: {query}");
-
 
             var dt = new DataTable();
 
@@ -52,7 +59,6 @@ public class TransactionRepository : SqLiteConnector, ITransactionRepository
 
                 lst.Add(transaction);
             }
-
             return lst;
         }
         catch (Exception e)
@@ -64,23 +70,47 @@ public class TransactionRepository : SqLiteConnector, ITransactionRepository
 
     private static User ToUser(DataRow row)
     {
-        var id = TypeConverters.ToInt(row["u_id"]);
+        var Id = TypeConverters.ToInt(row["id1"]);
+        var UserName = TypeConverters.ToString(row["user_name"]);
+        var Password = TypeConverters.ToString(row["password"]);
 
-        return null;
+        return new User(Id, UserName, Password);
     }
 
     private static Product ToProduct(DataRow row)
     {
-        var id = TypeConverters.ToInt(row["p_id"]);
+        var Id = (uint) TypeConverters.ToInt(row["id"]);
+        var Name = TypeConverters.ToString(row["name"]);
+        var Color = TypeConverters.GetColorEnum(row["color"].ToString());
+        var Season = TypeConverters.GetSeasonEnum(row["season"].ToString());
+        var Price = TypeConverters.ToDouble(row["price"]);
+        var Sold = TypeConverters.ToInt(row["sold"]) == 1;
 
-        return null;
+        return new Product(Id, Name, Color, Season, Price, Sold);
 
     }
 
     private static Transaction ToTransaction(DataRow row, User user, Product product)
     {
-        var id = TypeConverters.ToInt(row["t_id"]);
+        var Id = TypeConverters.ToInt(row["id2"]);
+        var Date = TypeConverters.ToDateTime(row["date"].ToString());
+        var PricePaid = TypeConverters.ToDouble(row["price_paid"]);
 
-        return null;
+        return new Transaction(Id, Date, user, product, PricePaid);
+    }
+    public void ClearTransactionsDatabase()
+    {
+        var query = $"DELETE FROM transactions";
+        //
+        using var connection = GetPhysicalDbConnection();
+        using var command = GetCommand(query, connection);
+        bool queryIsExecuted = ExecuteNonQuery(query);
+        if (!queryIsExecuted)
+        {
+            Logger.LogError($"Can't clear transactions database!");
+            return;
+        }
+        Logger.LogInfo($"The transactions database has been cleared successfully!");
+        return;
     }
 }
